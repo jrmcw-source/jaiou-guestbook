@@ -1,0 +1,18 @@
+/* Guestbook board (added with the Cloudflare guestbook build, 2026-11-10). */
+.gb-form label { font-weight: 600; }
+.gb-form input[type="text"], .gb-form input[type="email"], .gb-form textarea { width: 100%; box-sizing: border-box; font: inherit; font-weight: 400; padding: 8px 10px; margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+.gb-opt { font-weight: 400; color: var(--mut); font-size: .92rem; }
+.gb-submit { font: inherit; font-weight: 600; padding: 9px 26px; border: 1px solid var(--acc); border-radius: 999px; color: #fff; background: var(--acc); cursor: pointer; }
+.gb-submit:hover { background: var(--acc2); }
+.gb-trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.gb-note { color: var(--acc2); min-height: 1.2em; }
+.gb-post { border-top: 1px solid var(--line); padding: 12px 0 14px; }
+.gb-head { margin: 0 0 4px; }
+.gb-when { color: var(--mut); }
+.gb-msg { margin: 0; white-space: pre-wrap; }
+.gb-badge { margin: 4px 0; display: flex; align-items: center; gap: 10px; color: var(--acc2); font-weight: 600; }
+.gb-badgeimg { height: 46px; width: 46px; }
+.gb-empty { color: var(--mut); }
+.gb-ownerline { margin-top: 16px; }
+.gb-minibtn, .gb-tools button, #gb-ownertools button { font: inherit; font-size: .88rem; padding: 4px 12px; margin-right: 8px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--mut); cursor: pointer; }
+.gb-tools { margin: 8px 0 0; }
