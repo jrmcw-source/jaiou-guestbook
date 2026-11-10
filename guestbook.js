@@ -168,12 +168,27 @@
   if (ownerBtn) {
     ownerBtn.addEventListener("click", function () {
       if (ownerKey()) { paintOwnerTools(); load(); return; }
-      var k = prompt("Owner key:");
-      if (k) {
-        try { localStorage.setItem("gb_admin", k.trim()); } catch (e) {}
-        paintOwnerTools();
-        load();
-      }
+      // Inline unlock instead of a browser prompt() — dialogs are too easy
+      // for a browser to block, and a real field is easier to read anyway.
+      ownerTools.textContent = "";
+      var input = document.createElement("input");
+      input.type = "password";
+      input.placeholder = "Owner key";
+      input.className = "gb-keyin";
+      var go = document.createElement("button");
+      go.type = "button";
+      go.textContent = "Unlock";
+      go.addEventListener("click", function () {
+        var k = input.value.trim();
+        if (k) {
+          try { localStorage.setItem("gb_admin", k); } catch (e) {}
+          paintOwnerTools();
+          load();
+        }
+      });
+      ownerTools.appendChild(input);
+      ownerTools.appendChild(go);
+      input.focus();
     });
   }
 
