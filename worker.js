@@ -7,7 +7,8 @@
 //
 // Routes:
 //   GET  /posts          -> public list of visible posts (newest first). Emails are never included.
-//   POST /posts          -> add a post. JSON: {name, message, email?, code?, website?}
+//   POST /posts          -> add a post. JSON: {name, message, email?, code?, website?, parent_id?}
+//                           "parent_id" makes the post a reply, nested under the post it answers.
 //                           "website" is the honeypot: humans never see it; if it is filled, the post is silently dropped.
 //                           "code" is a McWoogle badge claim code; a good code stamps the post with the jAIou badge.
 //   GET  /badge/issue    -> mint a one-time badge claim code (the McWoogle win screen calls this).
@@ -70,9 +71,9 @@ async function notify(env, post) {
       body: JSON.stringify({
         from: "jaiou Guestbook <onboarding@resend.dev>",
         to: [to],
-        subject: `New guestbook post from ${post.name}`,
+        subject: post.parent_id ? `New guestbook reply from ${post.name}` : `New guestbook post from ${post.name}`,
         text:
-          `${post.name} just posted on the jaiou.com guestbook` +
+          `${post.name} just ${post.parent_id ? "replied" : "posted"} on the jaiou.com guestbook` +
           (post.badge ? " (with a jAIou badge claim — it checked out)" : "") +
           `:\n\n${post.message}\n\n—\nSee it at https://jaiou.com/guestbook.html`,
       }),
@@ -84,7 +85,7 @@ async function notify(env, post) {
 
 async function listPosts(env) {
   const { results } = await env.DB.prepare(
-    "SELECT id, name, message, badge, created_at FROM posts WHERE hidden = 0 ORDER BY id DESC LIMIT 200"
+    "SELECT id, name, message, badge, created_at, parent_id FROM posts WHERE hidden = 0 ORDER BY id DESC LIMIT 500"
   ).all();
   return json({ posts: results });
 }
@@ -114,6 +115,22 @@ async function addPost(request, env, ctx) {
   }
   if (!email) email = null;
 
+  // A reply names the post it answers. That post has to be on the board —
+  // a missing or hidden target refuses the reply with the way out in the message.
+  let parentId = null;
+  if (body.parent_id !== undefined && body.parent_id !== null && body.parent_id !== "") {
+    parentId = Number(body.parent_id);
+    if (!Number.isInteger(parentId) || parentId <= 0) {
+      return json({ error: "That reply lost track of the post it answers. Cancel the reply and try once more." }, 400);
+    }
+    const parent = await env.DB.prepare(
+      "SELECT id FROM posts WHERE id = ? AND hidden = 0"
+    ).bind(parentId).first();
+    if (!parent) {
+      return json({ error: "The post you are answering is no longer on the board. Cancel the reply and yours can still go up on its own." }, 400);
+    }
+  }
+
   const ipHash = await sha256Hex(request.headers.get("CF-Connecting-IP") || "unknown");
   const recent = await env.DB.prepare(
     "SELECT COUNT(*) AS n FROM posts WHERE ip_hash = ? AND created_at > datetime('now', '-10 minutes')"
@@ -140,10 +157,10 @@ async function addPost(request, env, ctx) {
   }
 
   const result = await env.DB.prepare(
-    "INSERT INTO posts (name, email, message, badge, ip_hash) VALUES (?, ?, ?, ?, ?)"
-  ).bind(name, email, message, badge, ipHash).run();
+    "INSERT INTO posts (name, email, message, badge, ip_hash, parent_id) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(name, email, message, badge, ipHash, parentId).run();
 
-  const post = { id: result.meta.last_row_id, name, message, badge, created_at: new Date().toISOString() };
+  const post = { id: result.meta.last_row_id, name, message, badge, parent_id: parentId, created_at: new Date().toISOString() };
   ctx.waitUntil(notify(env, post));
   return json({ ok: true, post, ...(badgeError ? { badge_error: badgeError } : {}) });
 }
@@ -191,13 +208,13 @@ async function adminSetHidden(request, env, hidden) {
 async function adminExport(request, env, url) {
   if (!isOwner(request, env)) return json({ error: "That needs the owner key." }, 403);
   const { results } = await env.DB.prepare(
-    "SELECT id, name, email, message, badge, hidden, created_at FROM posts ORDER BY id ASC"
+    "SELECT id, parent_id, name, email, message, badge, hidden, created_at FROM posts ORDER BY id ASC"
   ).all();
   if (url.searchParams.get("format") === "csv") {
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const csv = [
-      "id,name,email,message,badge,hidden,created_at",
-      ...results.map((r) => [r.id, r.name, r.email, r.message, r.badge, r.hidden, r.created_at].map(esc).join(",")),
+      "id,parent_id,name,email,message,badge,hidden,created_at",
+      ...results.map((r) => [r.id, r.parent_id, r.name, r.email, r.message, r.badge, r.hidden, r.created_at].map(esc).join(",")),
     ].join("\n");
     return new Response(csv, {
       headers: {

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS posts (
   badge      INTEGER NOT NULL DEFAULT 0,  -- 1 when the post carries a verified jAIou badge claim
   hidden     INTEGER NOT NULL DEFAULT 0,  -- owner sweep: 1 takes a post off the board without deleting it
   ip_hash    TEXT,                        -- sha256 of the poster IP, for the pace limit only
+  parent_id  INTEGER,                     -- the post this one answers; NULL means an opening post
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

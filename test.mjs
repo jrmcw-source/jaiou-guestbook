@@ -92,5 +92,25 @@ r = await call("POST", "/admin/restore", { body: { id: someId }, headers: { "X-A
 const restored = await call("GET", "/posts");
 check("restore brings it back", restored.data.posts.some((p) => p.id === someId));
 
+// 8. Replies: accepted under a visible post, listed with the link, refused plainly for bad targets.
+r = await call("GET", "/posts");
+const rootId = r.data.posts.find((p) => p.name === "Robert B.").id;
+r = await call("POST", "/posts", { body: { name: "Jason", message: "Glad you found it.", parent_id: rootId }, ip: "7.7.7.7" });
+check("reply accepted", r.status === 200 && r.data.ok && r.data.post.parent_id === rootId);
+const replyId = r.data.post.id;
+r = await call("GET", "/posts");
+check("reply listed with its parent", r.data.posts.some((p) => p.id === replyId && p.parent_id === rootId));
+check("opening post has no parent", r.data.posts.some((p) => p.id === rootId && (p.parent_id === null || p.parent_id === undefined)));
+r = await call("POST", "/posts", { body: { name: "Jason", message: "hello?", parent_id: 99999 }, ip: "7.7.7.7" });
+check("reply to a missing post refused", r.status === 400);
+r = await call("POST", "/admin/hide", { body: { id: rootId }, headers: { "X-Admin-Key": "test-owner-key" } });
+check("hide the parent", r.status === 200);
+r = await call("POST", "/posts", { body: { name: "Jason", message: "still there?", parent_id: rootId }, ip: "7.7.7.7" });
+check("reply to a hidden post refused", r.status === 400);
+r = await call("GET", "/admin/export", { headers: { "X-Admin-Key": "test-owner-key" } });
+check("export carries parent links", r.data.posts.some((p) => p.id === replyId && p.parent_id === rootId));
+r = await call("POST", "/admin/restore", { body: { id: rootId }, headers: { "X-Admin-Key": "test-owner-key" } });
+check("parent restored", r.status === 200);
+
 console.log(failures === 0 ? "\nALL CHECKS PASSED" : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures ? 1 : 0);
