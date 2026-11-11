@@ -18,3 +18,7 @@
 .gb-tools { margin: 8px 0 0; }
 
 .gb-keyin { font: inherit; font-size: .92rem; padding: 4px 10px; margin-right: 8px; border: 1px solid var(--line); border-radius: 999px; }
+
+/* Compact entry form (Jason, 2026-11-10): labels only, tight rows. */
+.gb-form p { margin: .45rem 0; }
+.gb-form input[type="text"], .gb-form input[type="email"], .gb-form textarea { padding: .45rem .6rem; }
