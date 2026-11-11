@@ -22,3 +22,9 @@
 /* Compact entry form (Jason, 2026-11-10): labels only, tight rows. */
 .gb-form p { margin: .45rem 0; }
 .gb-form input[type="text"], .gb-form input[type="email"], .gb-form textarea { padding: .45rem .6rem; }
+
+/* One-row short fields + tighter guestbook card (Jason, 2026-11-11). */
+.gb-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .6rem; }
+.gb-row p { margin: 0; }
+@media (max-width: 560px) { .gb-row { grid-template-columns: 1fr; } .gb-row p { margin: .35rem 0; } }
+.card:has(> #gb) { padding: 16px 18px; }
